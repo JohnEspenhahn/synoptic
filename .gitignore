@@ -10,6 +10,11 @@ synoptic/test-output/*
 # Ignore the compiled jar file
 lib/synoptic.jar
 
+.metadata
+.recommenders
+*.dot
+csight/runs/
+lib/
 
 #####################
 # SynopticGWT
@@ -129,3 +134,4 @@ traces/ReverseTraceroute/
 
 # ignore compiled distributions
 distros/
+/.metadata/.log

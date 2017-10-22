@@ -4,9 +4,9 @@
 	<classpathentry kind="var" path="SYNOPTIC_LIB/junit-4.9b2.jar"/>
 	<classpathentry kind="var" path="SYNOPTIC_LIB/plume.jar"/>
 	<classpathentry kind="var" path="SYNOPTIC_LIB"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/Daikonizer"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="var" path="SYNOPTIC_LIB/daikon.jar"/>
 	<classpathentry kind="var" path="SYNOPTIC_LIB/json-simple-1.1.1.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/daikonizer"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

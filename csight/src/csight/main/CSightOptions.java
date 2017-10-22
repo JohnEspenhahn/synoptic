@@ -175,7 +175,7 @@ public class CSightOptions extends Options {
 
     @Option(
             value = "-p Run model checking processes in parallel. (Only available for McScM)")
-    public boolean runParallel = true;
+    public boolean runParallel = false;
 
     @Option(
             value = "Check multiple invariants per model checking run when using Spin.")
