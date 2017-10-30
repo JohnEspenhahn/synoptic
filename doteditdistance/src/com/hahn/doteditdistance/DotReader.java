@@ -1,11 +1,15 @@
 package com.hahn.doteditdistance;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 import com.paypal.digraph.parser.GraphEdge;
 import com.paypal.digraph.parser.GraphNode;
@@ -17,6 +21,31 @@ import no.roek.nlpged.graph.Graph;
 import no.roek.nlpged.graph.Node;
 
 public class DotReader {
+	
+	public final static String delim = "// digraph \\{";
+	
+	public static Graph[] dotGraphs(String file1) {
+		List<Graph> graphs = new ArrayList<>();
+		try {
+			Scanner s1 = new Scanner(new File(file1));
+			s1.useDelimiter(delim);
+			
+			while (s1.hasNext()) {
+				Graph g1 = read("g1", new ByteArrayInputStream(s1.next().getBytes()));
+				if (g1 != null) {
+					graphs.add(g1);
+				} else {
+					break;
+				}
+			}
+						
+			s1.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return graphs.toArray(new Graph[graphs.size()]);
+	}
 	
 	public static Graph read(String name, InputStream is) {
 			GraphParser parser;
