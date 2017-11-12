@@ -17,6 +17,8 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/text2graph"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/csight"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/CSight"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/JFormatter"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/JVector"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

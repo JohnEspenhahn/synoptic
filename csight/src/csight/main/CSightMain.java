@@ -91,17 +91,6 @@ public class CSightMain {
      *            Command-line options
      */
     public static void main(String[] args) throws Exception {
-        api(args);
-        return;
-    }
-    
-    /**
-     * Runs csight, and outputs a file based on args
-     * @param args
-     * @return True if an error occurred
-     * @throws Exception Failed to parse options args
-     */
-    public static boolean api(String[] args) throws Exception {
     	CSightOptions opts = new CSightOptions(args);
         CSightMain main;
         try {
@@ -111,7 +100,8 @@ public class CSightMain {
                 logger.severe(oe.toString());
                 throw oe;
             }
-            return true;
+            System.exit(1);
+            return;
         }
 
         try {
@@ -121,10 +111,8 @@ public class CSightMain {
                 logger.severe(e.toString());
                 logger.severe("Unable to continue, exiting. Try cmd line option:\n\t" + opts.getOptDesc("help"));
             }
-            return true;
+            System.exit(1);
         }
-        
-        return false;
     }
 
     /**

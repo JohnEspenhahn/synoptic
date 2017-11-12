@@ -6,11 +6,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Scanner;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+
+import com.hahn.doteditdistance.utils.pmanagement.ProcessWatcher;
 
 import csight.main.CSightMain;
 import no.roek.nlpged.graph.Graph;
@@ -18,16 +21,20 @@ import no.roek.nlpged.graph.Graph;
 public class Main {
 	
 	static String dotOutputExtension = ".out";
-	static Options argsOptions = new Options()
-				.addOption(Option.builder("q").desc("CSight channels").hasArg().required().build())
+	private static Options argsOptions = new Options()
 				.addOption(Option.builder("s").desc("CSight run seperator").hasArg().build())
-				.addOption(Option.builder("mcp").longOpt("mcPath").desc("CSight model checker path").hasArg().build())
+				.addOption(Option.builder("mcp").longOpt("mcPath").desc("CSight model checker path").hasArg().required().build())
 				.addOption(Option.builder("r").desc("CSight line regex").hasArg().build())
 				.addOption(Option.builder("t").longOpt("base-timeout").hasArg().build())
 				.addOption(Option.builder("cached").longOpt("cached-base-graph").desc("Allow usage of cached dot graph").build())
 				.addOption(Option.builder("logs").longOpt("logs-under-test").desc("Files to be tested against the given base log").hasArgs().required().valueSeparator(' ').build());
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
+		if (args.length == 0) {
+			System.err.println("No base log file specified");
+			return;
+		}
+		
 		final String baseLogFile = args[0];
 		final String graphLogFile = baseLogFile + dotOutputExtension;		
 		final String parsedDotFile = graphLogFile + ".dot.graph";
@@ -41,16 +48,21 @@ public class Main {
 			return;
 		}
 		
+		Scanner s = new Scanner(new File(baseLogFile + "-channels"));
+		String channels = s.nextLine();
+		s.close();
+		
 		String[] csightArgs = new String[] {
 				// "-debugParse",
-				"-r", cmd.getOptionValue("r", "^(?<VTIME>)(?<PID>)(?<TYPE>)$"),
-				"-q", cmd.getOptionValue("q"),
+				"-r", cmd.getOptionValue("r", "^(?<VTIME>)(?<PID>)(?<TYPE>)\\s?[@\\w\\d_]*\\s?[\\w\\d_]*$"),
+				"-q", channels,
 				"-s", "^--$",
 				"--mcType", "spin",
-				"-base-timeout", cmd.getOptionValue("t", "5"),
-				"--mcPath", cmd.getOptionValue("mcp", "/home/tim/Documents/workspace/UNC/COMP495/spin/spin"),
-				"-o", graphLogFile,
-				baseLogFile
+				"-i", // ignore invalid lines
+				// "-base-timeout", cmd.getOptionValue("t", "5"),
+				"-minimize", // minimize FSM
+				"--mcPath", cmd.getOptionValue("mcp"),
+				"-o", graphLogFile, baseLogFile // last 2 must be these
 			};
 		
 		final File fParsedDotFile = new File(parsedDotFile);
@@ -63,8 +75,11 @@ public class Main {
 			// If failed to load cached, recompute
 			if (baseGraphs == null || baseGraphs.length == 0) {
 				try {
-					boolean err = CSightMain.api(csightArgs);				
-					if (err) {
+					ProcessWatcher cwatch = new ProcessWatcher("CSight", CSightMain.class);
+					int exitStatus = cwatch.start(csightArgs).waitFor();
+					cwatch.terminate();
+					
+					if (exitStatus != 0) {
 						System.err.println("CSight failed to generate DAG for base log file " + baseLogFile);
 						return;
 					}
@@ -100,9 +115,12 @@ public class Main {
 		for (String log: cmd.getOptionValues("logs")) {
 			csightArgs[csightArgs.length-2] = log + dotOutputExtension;
 			csightArgs[csightArgs.length-1] = log; 
-			try {
-				boolean err = CSightMain.api(csightArgs);
-				if (err) {
+			try {				
+				ProcessWatcher cwatch = new ProcessWatcher("CSight", CSightMain.class);
+				int exitStatus = cwatch.start(csightArgs).waitFor();
+				cwatch.terminate();
+				
+				if (exitStatus != 0) {
 					System.err.println("CSight failed to generate DAG for log file " + log);
 					return;
 				}
@@ -113,6 +131,8 @@ public class Main {
 				e.printStackTrace();
 			}
 		}
+		
+		System.exit(0);
 	}
 
 }
