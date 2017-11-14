@@ -238,7 +238,7 @@ public class CSightOptions extends Options {
      * What level of logging to use.
      */
     @Option(value = "Quietest logging, warnings only")
-    public boolean logLvlQuiet = false;
+    public boolean logLvlQuiet = true;
 
     @Option(value = "Verbose logging")
     public boolean logLvlVerbose = false;

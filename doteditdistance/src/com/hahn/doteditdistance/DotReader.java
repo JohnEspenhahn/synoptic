@@ -5,10 +5,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
+import java.util.Queue;
 import java.util.Scanner;
 
 import com.paypal.digraph.parser.GraphEdge;
@@ -54,101 +54,102 @@ public class DotReader {
 			} catch (GraphParserException e) {
 				return null;
 			}
-		
-			Map<String, LinkedNode> lns = new HashMap<>();
 			
 			// Init nodes
+			List<GraphNode> starts = new ArrayList<>();
 			for (GraphNode node : parser.getNodes().values()) {
-				lns.put(node.getId(), new LinkedNode(node.getId()));
+				if (node.getId().equals("start_0")) {
+					starts.add(node);
+				}
+				
+				node.setAttribute("out", new ArrayList<GraphEdge>());
 			}
+			
+			if (starts.size() == 0)
+				throw new RuntimeException("Start of graph not found");
 			
 			// Link nodes via edges
 			for (GraphEdge edge : parser.getEdges().values()) {
-				LinkedNode start = lns.get(edge.getNode1().getId()),
-						   end = lns.get(edge.getNode2().getId());
+				GraphNode n1 = edge.getNode1();
 				
-				start.addOutEdge(edge);
-				end.addInEdge(edge);
+				@SuppressWarnings("unchecked")
+				List<GraphEdge> l = (ArrayList<GraphEdge>) n1.getAttribute("out");
+				l.add(edge);
 			}
 			
 			// Invert
-			return buildInvertedGraph(name, lns);
+			return buildInvertedGraph(name, starts, parser);
 	}
 	
-	private static Graph buildInvertedGraph(String name, Map<String, LinkedNode> linkedNodeMap) {
+	private static Graph buildInvertedGraph(String name, List<GraphNode> starts, GraphParser parser) {
 		Graph graph = new Graph(name);
 		
-		Map<String, Node> createdNodes = new HashMap<>();		
-		for (LinkedNode ln: linkedNodeMap.values()) {
-			// Link in edges to created nodes
-			for (GraphEdge in: ln.getInEdges()) {
-				Node start;
+		Queue<NodeTuple> q = new LinkedList<>();
+		
+		Node start = new Node("start", "start", new String[] { "node" });
+		graph.addNode(start);
+		for (GraphNode inode: starts) {
+			// Skip first layer of edges out of start
+			@SuppressWarnings("unchecked")
+			List<GraphEdge> outEdges = (List<GraphEdge>) inode.getAttribute("out");
+			outEdges.sort(edgeCompare);
+			
+			for (GraphEdge out: outEdges)
+				q.add(new NodeTuple(out.getNode2(), null));
+		}
+		
+		while (!q.isEmpty()) {
+			NodeTuple t = q.poll();
+			
+			if (t.onode != null)
+				graph.addNode(t.onode);
+			
+			@SuppressWarnings("unchecked")
+			List<GraphEdge> outEdges = (List<GraphEdge>) t.inode.getAttribute("out");
+			outEdges.sort(edgeCompare);
+			
+			for (GraphEdge out: outEdges) {
+				GraphNode inode = out.getNode2();
 				
-				String inLbl = (String) in.getAttribute("label");
-				inLbl = (inLbl == null ? (String) in.getNode1().getAttribute("label") : inLbl);
+				String lbl = (String) out.getAttribute("label");
+				lbl = (lbl == null ? (String) inode.getAttribute("label") : lbl);
+				Node onode = new Node(lbl, lbl, new String[] { "node" });
 				
-				if (createdNodes.containsKey(inLbl)) {
-					start = createdNodes.get(inLbl);
-				} else {
-					start = new Node(inLbl, inLbl, new String[] { "node" });
-					createdNodes.put(inLbl, start);
-					graph.addNode(start);
+				Boolean enqueued = (Boolean) inode.getAttribute("enqueued");
+				if (enqueued == null || enqueued != true) {
+					inode.setAttribute("enqueued", true);
+					q.add(new NodeTuple(inode, onode));
 				}
 				
-				// Normal cases
-				for (GraphEdge out: ln.getOutEdges()) {
-					Node end;
-					
-					String outLbl = (String) out.getAttribute("label");
-					outLbl = (outLbl == null ? (String) out.getNode2().getAttribute("label") : outLbl);
-					
-					if (createdNodes.containsKey(outLbl)) {
-						end = createdNodes.get(outLbl);
-					} else {
-						end = new Node(outLbl, outLbl, new String[] { "node" });
-						createdNodes.put(outLbl, end);
-						graph.addNode(end);
-					}
-					
-					String id = start.getId() + " -> " + end.getId();
-					graph.addEdge(new Edge(id, start, end, id, new String[0]));
-				}
+				String onode_id = (t.onode == null ? "start" : t.onode.getId());
+				String id = onode_id + " -> " + onode.getId();
+				
+				graph.addEdge(new Edge(id, (t.onode == null ? start : t.onode), onode, id, new String[0]));
 			}
 		}
 		
 		return graph;
 	}
 	
-	static class LinkedNode {
-		
-		private String id;
-		private List<GraphEdge> inEdges, outEdges;
-		
-		public LinkedNode(String id) {
-			this.id = id;
-			this.inEdges = new ArrayList<>();
-			this.outEdges = new ArrayList<>();
+	private static final Comparator<GraphEdge> edgeCompare = new Comparator<GraphEdge>() {
+
+		@Override
+		public int compare(GraphEdge e1, GraphEdge e2) {
+			return ((String) e1.getAttribute("label")).compareTo((String) e2.getAttribute("label"));
 		}
 		
-		public String getId() {
-			return id;
-		}
+	};
+	
+	static class NodeTuple {
 		
-		public List<GraphEdge> getOutEdges() {
-			return Collections.unmodifiableList(outEdges);
-		}
+		GraphNode inode;
+		Node onode;
 		
-		public List<GraphEdge> getInEdges() {
-			return Collections.unmodifiableList(inEdges);
-		}
-		
-		public void addInEdge(GraphEdge e) {
-			this.inEdges.add(e);
-		}
-		
-		public void addOutEdge(GraphEdge e) {
-			this.outEdges.add(e);
+		NodeTuple(GraphNode i, Node o) {
+			this.inode = i;
+			this.onode = o;
 		}
 		
 	}
+	
 }

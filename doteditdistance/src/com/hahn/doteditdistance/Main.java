@@ -59,8 +59,6 @@ public class Main {
 				"-s", "^--$",
 				"--mcType", "spin",
 				"-i", // ignore invalid lines
-				// "-base-timeout", cmd.getOptionValue("t", "5"),
-				"-minimize", // minimize FSM
 				"--mcPath", cmd.getOptionValue("mcp"),
 				"-o", graphLogFile, baseLogFile // last 2 must be these
 			};

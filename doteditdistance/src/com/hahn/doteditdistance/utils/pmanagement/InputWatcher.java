@@ -2,14 +2,15 @@ package com.hahn.doteditdistance.utils.pmanagement;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 public class InputWatcher implements Runnable {
 	private static int INPUT_WATCHERS = 0;
 
-	private final InputHandler[] handlers;
+	private final List<InputHandler> handlers;
 	private final InputStream stream;
 	
-	protected InputWatcher(InputStream stream, InputHandler... handlers) {
+	protected InputWatcher(InputStream stream, List<InputHandler> handlers) {
 		this.stream = stream;
 		this.handlers = handlers;
 	}

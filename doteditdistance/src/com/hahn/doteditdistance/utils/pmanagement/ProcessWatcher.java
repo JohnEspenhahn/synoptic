@@ -3,7 +3,9 @@ package com.hahn.doteditdistance.utils.pmanagement;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class ProcessWatcher {
 	static final String HEADLESS = "-Djava.awt.headless=true";
@@ -45,22 +47,23 @@ public class ProcessWatcher {
 		System.arraycopy(args, 0, all_args, 5, args.length);
 		
 		ProcessBuilder builder = new ProcessBuilder(all_args);
-		this.process = builder.start();
+		process = builder.start();
 		
 		// Allow writing to stdin
-		 this.printWriter = new PrintWriter(this.process.getOutputStream());
+		printWriter = new PrintWriter(process.getOutputStream());
 		
 		// Watch stdout for events
-		this.inputDeserializer = getInputDeserializer();
-		this.inputForwarder = new InputForwarder(process, "[" + name + "] ");
-		this.inputWatcher = new InputWatcher(this.process.getInputStream(), new InputHandler[] {
-			inputDeserializer, inputForwarder
-		});
+		inputDeserializer = getInputDeserializer();
+		inputForwarder = new InputForwarder(process, "[" + name + "] ");
 		
-		this.errForwarder = new InputForwarder(process, "[" + name + "] ", System.err);
-		this.errWatcher = new InputWatcher(this.process.getErrorStream(), new InputHandler[] {
-			errForwarder
-		});
+		List<InputHandler> handlers = new ArrayList<>();
+		if (inputDeserializer != null) handlers.add(inputDeserializer);
+		handlers.add(inputForwarder);
+		
+		inputWatcher = new InputWatcher(process.getInputStream(), handlers);
+		
+		errForwarder = new InputForwarder(process, "[" + name + "] ", System.err);
+		errWatcher = new InputWatcher(process.getErrorStream(), Arrays.asList(errForwarder));
 		
 		if (inputDeserializer != null)
 			new Thread(inputDeserializer).start();
@@ -86,29 +89,29 @@ public class ProcessWatcher {
 	 * Causes the current thread to wait, if necessary, until the process represented by this Process object has terminated
 	 */
 	public int waitFor() throws InterruptedException {
-		return this.process.waitFor();
+		return process.waitFor();
 	}
 	
 	public void waitForEvent(Class<?> event) {
-		if (this.inputDeserializer != null)
-			this.inputDeserializer.waitForEvent(event);
+		if (inputDeserializer != null)
+			inputDeserializer.waitForEvent(event);
 	}
 	
 	public void println(String s) {
-		if (this.printWriter != null) {
-			this.printWriter.println(s);
+		if (printWriter != null) {
+			printWriter.println(s);
 		}
 	}
 	
 	public void flush() {
-		if (this.printWriter != null) {
-			this.printWriter.flush();
+		if (printWriter != null) {
+			printWriter.flush();
 		}
 	}
 	
 	public void terminate() {
-		if (this.process != null) {
-			this.process.destroyForcibly();
+		if (process != null) {
+			process.destroyForcibly();
 		}
 	}
 	

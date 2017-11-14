@@ -45,6 +45,8 @@ public class EventAsserts {
 			return new EventAssertBefore(param);
 		case "ONTHREAD":
 			return new EventAssertOnThread(param);
+		case "VALUE":
+			return new EventAssertValue(param);
 		default:
 			throw new RuntimeException("Unknown assert event " + event);
 		}
